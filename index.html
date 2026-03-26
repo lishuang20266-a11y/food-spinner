@@ -2,92 +2,87 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>今天吃什么？</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { height: 100%; overflow: hidden; }
     body {
       background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-      min-height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      font-family: 'Microsoft YaHei', sans-serif;
+      font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
       color: #fff;
+      padding: 16px;
     }
     h1 {
-      font-size: 2rem;
-      margin-bottom: 20px;
-      text-shadow: 0 0 20px rgba(255, 200, 0, 0.8);
+      font-size: clamp(1.2rem, 5vw, 2rem);
+      margin-bottom: 12px;
+      text-shadow: 0 0 20px rgba(255,200,0,0.8);
       letter-spacing: 4px;
+      white-space: nowrap;
     }
     .wheel-container {
       position: relative;
-      width: 500px;
-      height: 500px;
+      width: min(90vw, calc(90vh - 160px), 460px);
+      height: min(90vw, calc(90vh - 160px), 460px);
+      flex-shrink: 0;
     }
-    canvas {
+    canvas#wheel {
+      width: 100%;
+      height: 100%;
       border-radius: 50%;
-      box-shadow: 0 0 40px rgba(255, 200, 0, 0.4), 0 0 80px rgba(255, 100, 0, 0.2);
+      box-shadow: 0 0 30px rgba(255,200,0,0.4), 0 0 60px rgba(255,100,0,0.2);
+      touch-action: none;
     }
-    /* Pointer arrow at top center */
     .pointer {
       position: absolute;
-      top: -18px;
+      top: -14px;
       left: 50%;
       transform: translateX(-50%);
-      width: 0;
-      height: 0;
-      border-left: 14px solid transparent;
-      border-right: 14px solid transparent;
-      border-top: 36px solid #ff4444;
-      filter: drop-shadow(0 0 8px rgba(255, 68, 68, 0.9));
+      width: 0; height: 0;
+      border-left: 11px solid transparent;
+      border-right: 11px solid transparent;
+      border-top: 28px solid #ff4444;
+      filter: drop-shadow(0 0 6px rgba(255,68,68,0.9));
       z-index: 10;
     }
-    /* Center button */
     .center-btn {
       position: absolute;
-      top: 50%;
-      left: 50%;
+      top: 50%; left: 50%;
       transform: translate(-50%, -50%);
-      width: 70px;
-      height: 70px;
+      width: clamp(54px, 14%, 70px);
+      height: clamp(54px, 14%, 70px);
       border-radius: 50%;
       background: radial-gradient(circle, #fff 0%, #ffd700 60%, #ff8c00 100%);
-      border: 4px solid #fff;
+      border: 3px solid #fff;
       cursor: pointer;
-      font-size: 0.85rem;
+      font-size: clamp(0.7rem, 2.5vw, 0.9rem);
       font-weight: bold;
       color: #333;
-      box-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
-      transition: transform 0.1s, box-shadow 0.1s;
+      box-shadow: 0 0 20px rgba(255,215,0,0.8);
+      transition: transform 0.1s;
       z-index: 10;
+      font-family: inherit;
     }
-    .center-btn:hover {
-      transform: translate(-50%, -50%) scale(1.1);
-      box-shadow: 0 0 30px rgba(255, 215, 0, 1);
-    }
-    .center-btn:active {
-      transform: translate(-50%, -50%) scale(0.95);
-    }
+    .center-btn:active { transform: translate(-50%, -50%) scale(0.92); }
     .result {
-      margin-top: 30px;
-      font-size: 1.6rem;
+      margin-top: 14px;
+      font-size: clamp(1.1rem, 4.5vw, 1.6rem);
       font-weight: bold;
-      min-height: 50px;
+      min-height: 40px;
       text-align: center;
-      text-shadow: 0 0 15px rgba(255, 200, 0, 0.9);
-      transition: all 0.3s;
+      text-shadow: 0 0 15px rgba(255,200,0,0.9);
+      line-height: 1.4;
     }
-    .result span {
-      color: #ffd700;
-      font-size: 2rem;
-    }
+    .result span { color: #ffd700; font-size: clamp(1.3rem, 5.5vw, 2rem); }
     .hint {
-      margin-top: 10px;
-      font-size: 0.9rem;
-      color: rgba(255,255,255,0.5);
+      margin-top: 6px;
+      font-size: clamp(0.72rem, 2.8vw, 0.9rem);
+      color: rgba(255,255,255,0.45);
+      text-align: center;
     }
   </style>
 </head>
@@ -103,130 +98,150 @@
 
   <script>
     const foods = [
-      '水饺', '手擀面', '木桶饭', '土豆粉',
-      '米线', '馄饨', '卷饼', '驴肉火烧',
-      '炒饼', '水煎包', '麻辣香锅', '20元自助'
+      '水饺','手擀面','木桶饭','土豆粉',
+      '米线','馄饨','卷饼','驴肉火烧',
+      '炒饼','水煎包','麻辣香锅','20元自助'
     ];
-
     const colors = [
-      '#e74c3c', '#e67e22', '#f1c40f', '#2ecc71',
-      '#1abc9c', '#3498db', '#9b59b6', '#e91e63',
-      '#ff5722', '#4caf50', '#00bcd4', '#ff9800'
+      '#e74c3c','#e67e22','#f1c40f','#2ecc71',
+      '#1abc9c','#3498db','#9b59b6','#e91e63',
+      '#ff5722','#4caf50','#00bcd4','#ff9800'
     ];
 
     const canvas = document.getElementById('wheel');
     const ctx = canvas.getContext('2d');
     const N = foods.length;
     const sliceAngle = (2 * Math.PI) / N;
-    const cx = canvas.width / 2;
-    const cy = canvas.height / 2;
-    const radius = 230;
-
-    let currentAngle = 0; // current rotation of wheel (radians)
+    const CW = 500, CH = 500;
+    const cx = CW / 2, cy = CH / 2;
+    const radius = 228;
+    let currentAngle = 0;
     let spinning = false;
 
-    function drawWheel(rotation) {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    function drawWheel(rotation, resultText) {
+      ctx.clearRect(0, 0, CW, CH);
+
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius + 5, 0, 2 * Math.PI);
+      ctx.fillStyle = '#0f3460';
+      ctx.fill();
 
       for (let i = 0; i < N; i++) {
         const startAngle = rotation + i * sliceAngle;
         const endAngle = startAngle + sliceAngle;
-
-        // Slice
         ctx.beginPath();
         ctx.moveTo(cx, cy);
         ctx.arc(cx, cy, radius, startAngle, endAngle);
         ctx.closePath();
         ctx.fillStyle = colors[i];
         ctx.fill();
-        ctx.strokeStyle = 'rgba(255,255,255,0.3)';
-        ctx.lineWidth = 2;
+        ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+        ctx.lineWidth = 1.5;
         ctx.stroke();
 
-        // Text
         ctx.save();
         ctx.translate(cx, cy);
         ctx.rotate(startAngle + sliceAngle / 2);
         ctx.textAlign = 'right';
         ctx.fillStyle = '#fff';
-        ctx.font = 'bold 15px Microsoft YaHei';
-        ctx.shadowColor = 'rgba(0,0,0,0.5)';
+        ctx.font = 'bold 15px Microsoft YaHei, PingFang SC, Arial';
+        ctx.shadowColor = 'rgba(0,0,0,0.6)';
         ctx.shadowBlur = 4;
-        ctx.fillText(foods[i], radius - 12, 6);
+        ctx.fillText(foods[i], radius - 10, 6);
         ctx.restore();
       }
 
-      // Outer ring
       ctx.beginPath();
       ctx.arc(cx, cy, radius, 0, 2 * Math.PI);
-      ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+      ctx.strokeStyle = 'rgba(255,255,255,0.55)';
       ctx.lineWidth = 4;
       ctx.stroke();
 
-      // Inner circle (center cover)
+      ctx.save();
       ctx.beginPath();
-      ctx.arc(cx, cy, 38, 0, 2 * Math.PI);
-      ctx.fillStyle = 'rgba(0,0,0,0.3)';
+      ctx.moveTo(cx, cy - radius - 4);
+      ctx.lineTo(cx - 12, cy - radius - 32);
+      ctx.lineTo(cx + 12, cy - radius - 32);
+      ctx.closePath();
+      ctx.fillStyle = '#ff4444';
+      ctx.shadowColor = 'rgba(255,68,68,0.9)';
+      ctx.shadowBlur = 10;
       ctx.fill();
+      ctx.restore();
+
+      ctx.beginPath();
+      ctx.arc(cx, cy, 36, 0, 2 * Math.PI);
+      const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, 36);
+      grad.addColorStop(0, '#fff');
+      grad.addColorStop(0.6, '#ffd700');
+      grad.addColorStop(1, '#ff8c00');
+      ctx.fillStyle = grad;
+      ctx.shadowColor = 'rgba(255,215,0,0.8)';
+      ctx.shadowBlur = 15;
+      ctx.fill();
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      ctx.fillStyle = '#333';
+      ctx.font = 'bold 13px Microsoft YaHei, PingFang SC, Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('转！', cx, cy);
+
+      if (resultText) {
+        ctx.fillStyle = 'rgba(0,0,0,0.55)';
+        ctx.fillRect(0, CH - 58, CW, 58);
+        ctx.fillStyle = '#ffd700';
+        ctx.font = 'bold 21px Microsoft YaHei, PingFang SC, Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('今天就吃：' + resultText + ' 🎉', cx, CH - 29);
+      }
     }
 
     function getResult(finalAngle) {
-      // Pointer is at top (270 degrees = -PI/2 from right)
-      // We need to find which slice is at the top
-      // Top = -PI/2 in canvas coords
-      // Normalize angle so we know which slice is under the pointer
       const pointerAngle = -Math.PI / 2;
-      // Adjust: find angle relative to wheel rotation
       let relative = ((pointerAngle - finalAngle) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
-      const index = Math.floor(relative / sliceAngle) % N;
-      return foods[index];
+      return foods[Math.floor(relative / sliceAngle) % N];
     }
 
     function spin() {
       if (spinning) return;
       spinning = true;
-
       document.getElementById('result').innerHTML = '转动中...';
       document.getElementById('spinBtn').textContent = '...';
 
-      // Random extra rotations: 5~10 full rounds + random offset
       const extraRounds = (5 + Math.random() * 5) * 2 * Math.PI;
       const randomOffset = Math.random() * 2 * Math.PI;
       const targetAngle = currentAngle + extraRounds + randomOffset;
-
-      const duration = 4000 + Math.random() * 2000; // 4~6 seconds
+      const duration = 4000 + Math.random() * 2000;
       const startAngle = currentAngle;
       const startTime = performance.now();
 
-      function easeOut(t) {
-        return 1 - Math.pow(1 - t, 4);
-      }
+      function easeOut(t) { return 1 - Math.pow(1 - t, 4); }
 
       function animate(now) {
         const elapsed = now - startTime;
         const t = Math.min(elapsed / duration, 1);
-        const easedT = easeOut(t);
-        currentAngle = startAngle + (targetAngle - startAngle) * easedT;
-
-        drawWheel(currentAngle);
-
+        currentAngle = startAngle + (targetAngle - startAngle) * easeOut(t);
+        drawWheel(currentAngle, null);
         if (t < 1) {
           requestAnimationFrame(animate);
         } else {
           currentAngle = targetAngle % (2 * Math.PI);
-          drawWheel(currentAngle);
-          spinning = false;
           const food = getResult(currentAngle);
-          document.getElementById('result').innerHTML = `今天就吃 <span>${food}</span> 🎉`;
+          drawWheel(currentAngle, food);
+          spinning = false;
+          document.getElementById('result').innerHTML = '今天就吃 <span>' + food + '</span> 🎉';
           document.getElementById('spinBtn').textContent = '再转！';
         }
       }
-
       requestAnimationFrame(animate);
     }
 
-    // Initial draw
-    drawWheel(0);
+    drawWheel(0, null);
   </script>
 </body>
 </html>
