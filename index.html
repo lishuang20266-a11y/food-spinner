@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>今天吃什么？</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Microsoft YaHei', sans-serif;
+      color: #fff;
+    }
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 20px;
+      text-shadow: 0 0 20px rgba(255, 200, 0, 0.8);
+      letter-spacing: 4px;
+    }
+    .wheel-container {
+      position: relative;
+      width: 500px;
+      height: 500px;
+    }
+    canvas {
+      border-radius: 50%;
+      box-shadow: 0 0 40px rgba(255, 200, 0, 0.4), 0 0 80px rgba(255, 100, 0, 0.2);
+    }
+    /* Pointer arrow at top center */
+    .pointer {
+      position: absolute;
+      top: -18px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 14px solid transparent;
+      border-right: 14px solid transparent;
+      border-top: 36px solid #ff4444;
+      filter: drop-shadow(0 0 8px rgba(255, 68, 68, 0.9));
+      z-index: 10;
+    }
+    /* Center button */
+    .center-btn {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #fff 0%, #ffd700 60%, #ff8c00 100%);
+      border: 4px solid #fff;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: bold;
+      color: #333;
+      box-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+      transition: transform 0.1s, box-shadow 0.1s;
+      z-index: 10;
+    }
+    .center-btn:hover {
+      transform: translate(-50%, -50%) scale(1.1);
+      box-shadow: 0 0 30px rgba(255, 215, 0, 1);
+    }
+    .center-btn:active {
+      transform: translate(-50%, -50%) scale(0.95);
+    }
+    .result {
+      margin-top: 30px;
+      font-size: 1.6rem;
+      font-weight: bold;
+      min-height: 50px;
+      text-align: center;
+      text-shadow: 0 0 15px rgba(255, 200, 0, 0.9);
+      transition: all 0.3s;
+    }
+    .result span {
+      color: #ffd700;
+      font-size: 2rem;
+    }
+    .hint {
+      margin-top: 10px;
+      font-size: 0.9rem;
+      color: rgba(255,255,255,0.5);
+    }
+  </style>
+</head>
+<body>
+  <h1>🍜 今天吃什么？</h1>
+  <div class="wheel-container">
+    <div class="pointer"></div>
+    <canvas id="wheel" width="500" height="500"></canvas>
+    <button class="center-btn" id="spinBtn" onclick="spin()">转！</button>
+  </div>
+  <div class="result" id="result">点击中心按钮开始转动</div>
+  <div class="hint">每次随机旋转，箭头指向即为今日美食</div>
+
+  <script>
+    const foods = [
+      '水饺', '手擀面', '木桶饭', '土豆粉',
+      '米线', '馄饨', '卷饼', '驴肉火烧',
+      '炒饼', '水煎包', '麻辣香锅', '20元自助'
+    ];
+
+    const colors = [
+      '#e74c3c', '#e67e22', '#f1c40f', '#2ecc71',
+      '#1abc9c', '#3498db', '#9b59b6', '#e91e63',
+      '#ff5722', '#4caf50', '#00bcd4', '#ff9800'
+    ];
+
+    const canvas = document.getElementById('wheel');
+    const ctx = canvas.getContext('2d');
+    const N = foods.length;
+    const sliceAngle = (2 * Math.PI) / N;
+    const cx = canvas.width / 2;
+    const cy = canvas.height / 2;
+    const radius = 230;
+
+    let currentAngle = 0; // current rotation of wheel (radians)
+    let spinning = false;
+
+    function drawWheel(rotation) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      for (let i = 0; i < N; i++) {
+        const startAngle = rotation + i * sliceAngle;
+        const endAngle = startAngle + sliceAngle;
+
+        // Slice
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.arc(cx, cy, radius, startAngle, endAngle);
+        ctx.closePath();
+        ctx.fillStyle = colors[i];
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Text
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(startAngle + sliceAngle / 2);
+        ctx.textAlign = 'right';
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 15px Microsoft YaHei';
+        ctx.shadowColor = 'rgba(0,0,0,0.5)';
+        ctx.shadowBlur = 4;
+        ctx.fillText(foods[i], radius - 12, 6);
+        ctx.restore();
+      }
+
+      // Outer ring
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius, 0, 2 * Math.PI);
+      ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+      ctx.lineWidth = 4;
+      ctx.stroke();
+
+      // Inner circle (center cover)
+      ctx.beginPath();
+      ctx.arc(cx, cy, 38, 0, 2 * Math.PI);
+      ctx.fillStyle = 'rgba(0,0,0,0.3)';
+      ctx.fill();
+    }
+
+    function getResult(finalAngle) {
+      // Pointer is at top (270 degrees = -PI/2 from right)
+      // We need to find which slice is at the top
+      // Top = -PI/2 in canvas coords
+      // Normalize angle so we know which slice is under the pointer
+      const pointerAngle = -Math.PI / 2;
+      // Adjust: find angle relative to wheel rotation
+      let relative = ((pointerAngle - finalAngle) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
+      const index = Math.floor(relative / sliceAngle) % N;
+      return foods[index];
+    }
+
+    function spin() {
+      if (spinning) return;
+      spinning = true;
+
+      document.getElementById('result').innerHTML = '转动中...';
+      document.getElementById('spinBtn').textContent = '...';
+
+      // Random extra rotations: 5~10 full rounds + random offset
+      const extraRounds = (5 + Math.random() * 5) * 2 * Math.PI;
+      const randomOffset = Math.random() * 2 * Math.PI;
+      const targetAngle = currentAngle + extraRounds + randomOffset;
+
+      const duration = 4000 + Math.random() * 2000; // 4~6 seconds
+      const startAngle = currentAngle;
+      const startTime = performance.now();
+
+      function easeOut(t) {
+        return 1 - Math.pow(1 - t, 4);
+      }
+
+      function animate(now) {
+        const elapsed = now - startTime;
+        const t = Math.min(elapsed / duration, 1);
+        const easedT = easeOut(t);
+        currentAngle = startAngle + (targetAngle - startAngle) * easedT;
+
+        drawWheel(currentAngle);
+
+        if (t < 1) {
+          requestAnimationFrame(animate);
+        } else {
+          currentAngle = targetAngle % (2 * Math.PI);
+          drawWheel(currentAngle);
+          spinning = false;
+          const food = getResult(currentAngle);
+          document.getElementById('result').innerHTML = `今天就吃 <span>${food}</span> 🎉`;
+          document.getElementById('spinBtn').textContent = '再转！';
+        }
+      }
+
+      requestAnimationFrame(animate);
+    }
+
+    // Initial draw
+    drawWheel(0);
+  </script>
+</body>
+</html>
